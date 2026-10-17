@@ -1,121 +1,170 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  login,
+  logout,
+  register,
+  clearError,
+  selectCurrentUser,
+  selectAuthError,
+} from './store/authSlice'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const dispatch = useDispatch()
+  const currentUser = useSelector(selectCurrentUser)
+  const authError = useSelector(selectAuthError)
+  const [mode, setMode] = useState('login')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const isRegistering = mode === 'register'
+
+  function handleSubmit(event) {
+    event.preventDefault()
+
+    const action = isRegistering
+      ? register({ name, email, password })
+      : login({ email, password })
+
+    dispatch(action)
+  }
+
+  function switchMode(nextMode) {
+    setMode(nextMode)
+    dispatch(clearError())
+    setName('')
+    setEmail('')
+    setPassword('')
+  }
+
+  if (currentUser) {
+    return (
+      <main className="app-shell">
+        <section className="welcome-panel">
+          <div className="brand-mark" aria-hidden="true">EM</div>
+          <p className="eyebrow">Event Management System</p>
+          <h1>Welcome back, {currentUser.name}.</h1>
+          <p className="welcome-copy">
+            You are signed in and ready to discover your next memorable event.
+          </p>
+          <div className="profile-card">
+            <span className="avatar" aria-hidden="true">
+              {currentUser.name.charAt(0).toUpperCase()}
+            </span>
+            <div>
+              <strong>{currentUser.name}</strong>
+              <span>{currentUser.email}</span>
+            </div>
+          </div>
+          <button className="button button-secondary" type="button" onClick={() => dispatch(logout())}>
+            Log out
+          </button>
+        </section>
+      </main>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+    <main className="app-shell">
+      <section className="intro-panel">
+        <div className="brand-mark" aria-hidden="true">EM</div>
+        <p className="eyebrow">Event Management System</p>
+        <h1>Make every moment an event.</h1>
+        <p className="intro-copy">
+          Organize, discover, and experience events that bring people together.
+        </p>
+        <div className="event-decoration" aria-hidden="true">
+          <span>01</span>
+          <span className="line" />
+          <span>CREATE · CONNECT · CELEBRATE</span>
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <section className="auth-panel" aria-labelledby="auth-title">
+        <div className="auth-heading">
+          <p className="eyebrow">Your account</p>
+          <h2 id="auth-title">{isRegistering ? 'Create your account' : 'Welcome back'}</h2>
+          <p>{isRegistering ? 'Start planning experiences people will remember.' : 'Sign in to continue to your events.'}</p>
+        </div>
+
+        <div className="mode-switcher" role="tablist" aria-label="Authentication mode">
+          <button
+            className={mode === 'login' ? 'active' : ''}
+            type="button"
+            role="tab"
+            aria-selected={mode === 'login'}
+            onClick={() => switchMode('login')}
+          >
+            Log in
+          </button>
+          <button
+            className={mode === 'register' ? 'active' : ''}
+            type="button"
+            role="tab"
+            aria-selected={mode === 'register'}
+            onClick={() => switchMode('register')}
+          >
+            Register
+          </button>
+        </div>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {isRegistering && (
+            <label>
+              Name
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Alex Morgan"
+                autoComplete="name"
+                required
+              />
+            </label>
+          )}
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="At least 6 characters"
+              autoComplete={isRegistering ? 'new-password' : 'current-password'}
+              minLength="6"
+              required
+            />
+          </label>
+
+          {authError && <p className="form-error" role="alert">{authError}</p>}
+
+          <button className="button button-primary" type="submit">
+            {isRegistering ? 'Create account' : 'Log in'}
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <p className="auth-footnote">
+          {isRegistering ? 'Already have an account?' : 'New to Event Management?'}{' '}
+          <button type="button" onClick={() => switchMode(isRegistering ? 'login' : 'register')}>
+            {isRegistering ? 'Log in' : 'Create one'}
+          </button>
+        </p>
+        <p className="simulation-note">Frontend demo authentication · Your session persists on refresh</p>
+      </section>
+    </main>
   )
 }
 
