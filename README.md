@@ -1,5 +1,17 @@
 # React + Vite
 
+## Event discovery
+
+After signing in, the app opens the Event Exploration workspace. Search, location, category filters, upcoming events, and event details are powered by the Ticketmaster Discovery API.
+
+Create a `.env` file in the project root and add a Ticketmaster API key:
+
+```bash
+VITE_TICKETMASTER_API_KEY=your_ticketmaster_api_key
+```
+
+The key is used by the browser for this frontend demo, so use a key restricted to the local development origin. Ticket links open the official Ticketmaster listing in a new tab.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
