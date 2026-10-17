@@ -319,19 +319,41 @@ function EventCard({ event, onSelect }) {
 
 function EventDetails({ event, onClose }) {
   const venue = event._embedded?.venues?.[0]
-  const date = new Date(event.dates?.start?.dateTime || `${event.dates?.start?.localDate}T00:00:00`)
+  const start = event.dates?.start
+  const date = start?.dateTime ? new Date(start.dateTime) : new Date(`${start?.localDate}T00:00:00`)
+  const image = event.images?.find((item) => item.width >= 800)?.url || event.images?.[0]?.url
+  const classification = event.classifications?.[0]
+  const address = [venue?.address?.line1, venue?.city?.name, venue?.state?.stateCode || venue?.country?.countryCode]
+    .filter(Boolean)
+    .join(', ')
+  const priceRange = event.priceRanges?.[0]
+  const formattedPrice = priceRange
+    ? `${priceRange.currency} ${priceRange.min.toFixed(2)}${priceRange.max !== priceRange.min ? ` - ${priceRange.max.toFixed(2)}` : ''}`
+    : null
+  const dateLabel = start?.dateTime
+    ? date.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
+    : date.toLocaleDateString('en-US', { dateStyle: 'full' })
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <article className="details-modal" role="dialog" aria-modal="true" aria-labelledby="event-title">
         <button className="modal-close" type="button" onClick={onClose} aria-label="Close event details">×</button>
-        <p className="eyebrow">{event.classifications?.[0]?.segment?.name || 'Event details'}</p>
+        {image ? <img className="details-image" src={image} alt="" /> : <div className="details-image details-image-placeholder">EVENT</div>}
+        <div className="details-content">
+          <p className="eyebrow">{classification?.segment?.name || 'Event details'}</p>
         <h2 id="event-title">{event.name}</h2>
         <div className="details-list">
-          <p><strong>When</strong>{date.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
-          <p><strong>Where</strong>{venue?.name || 'Venue to be announced'}{venue?.city?.name ? `, ${venue.city.name}` : ''}</p>
+          <p><strong>Date and time</strong>{dateLabel}</p>
+          <p><strong>Venue</strong>{venue?.name || 'Venue to be announced'}</p>
+          <p><strong>Location</strong>{address || 'Location to be announced'}</p>
+          <p><strong>Category / type</strong>{[classification?.segment?.name, classification?.genre?.name, classification?.type?.name].filter(Boolean).join(' · ') || 'Not specified'}</p>
+          {formattedPrice && <p><strong>Price range</strong>{formattedPrice}</p>}
+          {event.dates?.status?.code && <p><strong>Ticket status</strong>{event.dates.status.code.replaceAll('_', ' ')}</p>}
         </div>
+        {event.info && <p className="details-description">{event.info}</p>}
+        {event.pleaseNote && <p className="details-note"><strong>Please note</strong>{event.pleaseNote}</p>}
         <a className="button button-primary ticket-link" href={event.url} target="_blank" rel="noreferrer">View tickets <span aria-hidden="true">↗</span></a>
+        </div>
       </article>
     </div>
   )
