@@ -353,6 +353,37 @@ button {
   gap: 22px;
 }
 
+.view-switcher {
+  display: flex;
+  gap: 16px;
+}
+
+.view-switcher button {
+  border: 0;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.view-switcher button.active {
+  color: var(--ink);
+}
+
+.nav-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--orange);
+  font-size: 10px;
+}
+
 .user-greeting {
   color: var(--muted);
   font-size: 13px;
@@ -396,6 +427,65 @@ button {
   color: var(--muted);
   font-size: 15px;
   line-height: 1.65;
+}
+
+.my-events-section {
+  padding-top: 76px;
+}
+
+.my-events-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  padding-bottom: 58px;
+}
+
+.my-events-heading h1 {
+  margin: 14px 0 16px;
+  color: var(--ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(48px, 7vw, 78px);
+  font-weight: 400;
+  letter-spacing: -4px;
+  line-height: .93;
+}
+
+.my-events-heading h1 em {
+  color: var(--orange);
+  font-style: italic;
+}
+
+.my-events-heading p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.event-total {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.event-group {
+  margin-bottom: 58px;
+}
+
+.event-group .section-heading {
+  margin-bottom: 26px;
+}
+
+.event-group .section-heading h2 {
+  margin: 0;
+}
+
+.cancel-registration {
+  border: 0;
+  margin-top: 14px;
+  padding: 0;
+  color: var(--orange);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .hero-stamp {
@@ -737,6 +827,21 @@ button {
   text-decoration: none;
 }
 
+.secondary-ticket-link {
+  margin-top: 16px;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.registration-confirmation {
+  padding: 14px 16px;
+  color: #2f6b4f;
+  background: #e7f1e9;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 800px) {
   .explorer-shell {
     padding: 0 24px 60px;
@@ -753,6 +858,11 @@ button {
     width: 78px;
     height: 78px;
     font-size: 9px;
+  }
+
+  .my-events-heading {
+    align-items: start;
+    gap: 24px;
   }
 
   .search-form,
@@ -772,6 +882,14 @@ button {
 
   .user-greeting {
     display: none;
+  }
+
+  .header-actions {
+    gap: 14px;
+  }
+
+  .view-switcher {
+    gap: 10px;
   }
 
   .explorer-hero h1 {
@@ -819,5 +937,19 @@ button {
 
   .details-list {
     grid-template-columns: 1fr;
+  }
+
+  .my-events-section {
+    padding-top: 52px;
+  }
+
+  .my-events-heading {
+    display: block;
+    padding-bottom: 42px;
+  }
+
+  .event-total {
+    display: block;
+    margin-top: 24px;
   }
 }

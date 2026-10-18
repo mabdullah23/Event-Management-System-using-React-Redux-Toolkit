@@ -12,6 +12,17 @@ VITE_TICKETMASTER_API_KEY=your_ticketmaster_api_key
 
 The key is used by the browser for this frontend demo, so use a key restricted to the local development origin. Ticket links open the official Ticketmaster listing in a new tab.
 
+## Registrations
+
+Select an event to register for it. Registered events are stored in Redux Toolkit and
+persisted in the browser for the signed-in user. The **My Events** view separates
+registrations into upcoming and completed events; upcoming registrations can be
+cancelled from that view.
+
+The Redux store uses the `auth` slice for accounts and sessions and the
+`registrations` slice for event registrations. Registration actions and selectors
+are shared by event discovery, event details, and My Events.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

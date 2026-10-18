@@ -8,6 +8,11 @@ import {
   selectCurrentUser,
   selectAuthError,
 } from './store/authSlice'
+import {
+  cancelRegistration,
+  registerEvent,
+  selectRegistrationsForUser,
+} from './store/registrationsSlice'
 import './App.css'
 
 function App() {
@@ -149,6 +154,8 @@ const API_URL = 'https://app.ticketmaster.com/discovery/v2/events.json'
 const API_KEY = import.meta.env.VITE_TICKETMASTER_API_KEY
 
 function EventExplorer({ user, onLogout }) {
+  const dispatch = useDispatch()
+  const registrations = useSelector((state) => selectRegistrationsForUser(state, user.email))
   const [events, setEvents] = useState([])
   const [keyword, setKeyword] = useState('')
   const [city, setCity] = useState('')
@@ -157,6 +164,7 @@ function EventExplorer({ user, onLogout }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
+  const [activeView, setActiveView] = useState('discover')
 
   const categories = useMemo(() => {
     const names = events
@@ -217,6 +225,18 @@ function EventExplorer({ user, onLogout }) {
     findEvents({ keyword, city, category: nextCategory })
   }
 
+  function handleRegister(event) {
+    dispatch(registerEvent({ userEmail: user.email, event }))
+  }
+
+  function handleCancel(eventId) {
+    dispatch(cancelRegistration({ userEmail: user.email, eventId }))
+  }
+
+  function isRegistered(eventId) {
+    return registrations.some((registration) => registration.id === eventId)
+  }
+
   return (
     <main className="explorer-shell">
       <header className="explorer-header">
@@ -225,11 +245,36 @@ function EventExplorer({ user, onLogout }) {
           <span>Event Management</span>
         </a>
         <div className="header-actions">
+          <nav className="view-switcher" aria-label="Event views">
+            <button
+              className={activeView === 'discover' ? 'active' : ''}
+              type="button"
+              onClick={() => setActiveView('discover')}
+            >
+              Discover
+            </button>
+            <button
+              className={activeView === 'my-events' ? 'active' : ''}
+              type="button"
+              onClick={() => setActiveView('my-events')}
+            >
+              My Events
+              {registrations.length > 0 && <span className="nav-count">{registrations.length}</span>}
+            </button>
+          </nav>
           <span className="user-greeting">Hi, {user.name.split(' ')[0]}</span>
           <button className="logout-button" type="button" onClick={onLogout}>Log out</button>
         </div>
       </header>
 
+      {activeView === 'my-events' ? (
+        <MyEvents
+          registrations={registrations}
+          onCancel={handleCancel}
+          onSelect={setSelectedEvent}
+        />
+      ) : (
+      <>
       <section className="explorer-hero">
         <div>
           <p className="eyebrow">Discover what is next</p>
@@ -291,9 +336,103 @@ function EventExplorer({ user, onLogout }) {
         )}
       </section>
 
-      {selectedEvent && <EventDetails event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+      </>
+      )}
+
+      {selectedEvent && (
+        <EventDetails
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          isRegistered={isRegistered(selectedEvent.id)}
+          onRegister={() => handleRegister(selectedEvent)}
+        />
+      )}
     </main>
   )
+}
+
+function MyEvents({ registrations, onCancel, onSelect }) {
+  const now = Date.now()
+  const upcoming = registrations.filter((event) => getEventDate(event).getTime() >= now)
+  const completed = registrations.filter((event) => getEventDate(event).getTime() < now)
+
+  return (
+    <section className="my-events-section">
+      <div className="my-events-heading">
+        <div>
+          <p className="eyebrow">Your calendar</p>
+          <h1>My <em>Events.</em></h1>
+          <p>Keep track of the experiences you have signed up for.</p>
+        </div>
+        <span className="event-total">{registrations.length} registered</span>
+      </div>
+      <EventGroup
+        title="Upcoming"
+        events={upcoming}
+        emptyMessage="You have no upcoming events. Discover something new to look forward to."
+        onCancel={onCancel}
+        onSelect={onSelect}
+        canCancel
+      />
+      <EventGroup
+        title="Completed"
+        events={completed}
+        emptyMessage="Completed events will appear here after their date has passed."
+        onSelect={onSelect}
+      />
+    </section>
+  )
+}
+
+function EventGroup({ title, events, emptyMessage, onCancel, onSelect, canCancel = false }) {
+  return (
+    <section className="event-group" aria-labelledby={`${title.toLowerCase()}-events-title`}>
+      <div className="section-heading">
+        <h2 id={`${title.toLowerCase()}-events-title`}>{title}</h2>
+        <span className="result-count">{events.length} {events.length === 1 ? 'event' : 'events'}</span>
+      </div>
+      {events.length > 0 ? (
+        <div className="event-grid">
+          {events.map((event) => (
+            <RegisteredEventCard
+              key={event.id}
+              event={event}
+              onCancel={canCancel ? onCancel : undefined}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="status-message">{emptyMessage}</div>
+      )}
+    </section>
+  )
+}
+
+function RegisteredEventCard({ event, onCancel, onSelect }) {
+  const date = getEventDate(event)
+  const image = event.images?.find((item) => item.width >= 500)?.url || event.images?.[0]?.url
+
+  return (
+    <article className="event-card registered-event-card">
+      <button className="event-card-button" type="button" onClick={() => onSelect(event)}>
+        <div className="event-image-wrap">
+          {image ? <img src={image} alt="" className="event-image" /> : <div className="image-placeholder">EVENT</div>}
+          <span className="date-badge"><strong>{date.toLocaleDateString('en-US', { day: '2-digit' })}</strong><small>{date.toLocaleDateString('en-US', { month: 'short' })}</small></span>
+        </div>
+        <div className="event-card-content">
+          <p className="event-category">{event.classifications?.[0]?.segment?.name || 'Event'}</p>
+          <h3>{event.name}</h3>
+          <p className="event-meta">{event._embedded?.venues?.[0]?.name || 'Venue details available'} · {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+        </div>
+      </button>
+      {onCancel && <button className="cancel-registration" type="button" onClick={() => onCancel(event.id)}>Cancel registration</button>}
+    </article>
+  )
+}
+
+function getEventDate(event) {
+  return new Date(event.dates?.start?.dateTime || `${event.dates?.start?.localDate}T00:00:00`)
 }
 
 function EventCard({ event, onSelect }) {
@@ -317,7 +456,7 @@ function EventCard({ event, onSelect }) {
   )
 }
 
-function EventDetails({ event, onClose }) {
+function EventDetails({ event, onClose, isRegistered, onRegister }) {
   const venue = event._embedded?.venues?.[0]
   const start = event.dates?.start
   const date = start?.dateTime ? new Date(start.dateTime) : new Date(`${start?.localDate}T00:00:00`)
@@ -352,7 +491,14 @@ function EventDetails({ event, onClose }) {
         </div>
         {event.info && <p className="details-description">{event.info}</p>}
         {event.pleaseNote && <p className="details-note"><strong>Please note</strong>{event.pleaseNote}</p>}
-        <a className="button button-primary ticket-link" href={event.url} target="_blank" rel="noreferrer">View tickets <span aria-hidden="true">↗</span></a>
+        {isRegistered ? (
+          <div className="registration-confirmation" role="status">You are registered for this event.</div>
+        ) : (
+          <button className="button button-primary ticket-link" type="button" onClick={onRegister}>
+            Register for event <span aria-hidden="true">→</span>
+          </button>
+        )}
+        {event.url && <a className="ticket-link secondary-ticket-link" href={event.url} target="_blank" rel="noreferrer">View official tickets <span aria-hidden="true">↗</span></a>}
         </div>
       </article>
     </div>
