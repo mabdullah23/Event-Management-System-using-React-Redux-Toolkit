@@ -23,6 +23,18 @@ The Redux store uses the `auth` slice for accounts and sessions and the
 `registrations` slice for event registrations. Registration actions and selectors
 are shared by event discovery, event details, and My Events.
 
+## Routes
+
+React Router provides the following navigation structure:
+
+- `/login` and `/register` for authentication
+- `/events` for event discovery
+- `/events/:eventId` for event details
+- `/my-events` for the signed-in user's registrations
+
+Event discovery and registration pages are protected routes and redirect to
+`/login` when there is no authenticated user.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

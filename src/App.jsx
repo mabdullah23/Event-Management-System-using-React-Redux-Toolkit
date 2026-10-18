@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
+import {
   login,
   logout,
   register,
@@ -16,15 +26,50 @@ import {
 import './App.css'
 
 function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  )
+}
+
+function AppRoutes() {
+  const currentUser = useSelector(selectCurrentUser)
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to={currentUser ? '/events' : '/login'} replace />} />
+      <Route path="/login" element={<AuthPage mode="login" />} />
+      <Route path="/register" element={<AuthPage mode="register" />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/events" element={<EventExplorer user={currentUser} />} />
+        <Route path="/events/:eventId" element={<EventDetailsPage user={currentUser} />} />
+        <Route path="/my-events" element={<MyEventsPage user={currentUser} />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function ProtectedRoute() {
+  const currentUser = useSelector(selectCurrentUser)
+  return currentUser ? <Outlet /> : <Navigate to="/login" replace />
+}
+
+function AuthPage({ mode }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
   const authError = useSelector(selectAuthError)
-  const [mode, setMode] = useState('login')
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const isRegistering = mode === 'register'
+
+  useEffect(() => {
+    if (currentUser) navigate('/events', { replace: true })
+  }, [currentUser, navigate])
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -37,15 +82,11 @@ function App() {
   }
 
   function switchMode(nextMode) {
-    setMode(nextMode)
     dispatch(clearError())
     setName('')
     setEmail('')
     setPassword('')
-  }
-
-  if (currentUser) {
-    return <EventExplorer user={currentUser} onLogout={() => dispatch(logout())} />
+    navigate(`/${nextMode}`)
   }
 
   return (
@@ -153,18 +194,17 @@ function App() {
 const API_URL = 'https://app.ticketmaster.com/discovery/v2/events.json'
 const API_KEY = import.meta.env.VITE_TICKETMASTER_API_KEY
 
-function EventExplorer({ user, onLogout }) {
+function EventExplorer({ user }) {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const registrations = useSelector((state) => selectRegistrationsForUser(state, user.email))
   const [events, setEvents] = useState([])
   const [keyword, setKeyword] = useState('')
   const [city, setCity] = useState('')
   const [category, setCategory] = useState('')
-  const [selectedEvent, setSelectedEvent] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
-  const [activeView, setActiveView] = useState('discover')
 
   const categories = useMemo(() => {
     const names = events
@@ -225,16 +265,9 @@ function EventExplorer({ user, onLogout }) {
     findEvents({ keyword, city, category: nextCategory })
   }
 
-  function handleRegister(event) {
-    dispatch(registerEvent({ userEmail: user.email, event }))
-  }
-
-  function handleCancel(eventId) {
-    dispatch(cancelRegistration({ userEmail: user.email, eventId }))
-  }
-
-  function isRegistered(eventId) {
-    return registrations.some((registration) => registration.id === eventId)
+  function handleLogout() {
+    dispatch(logout())
+    navigate('/login')
   }
 
   return (
@@ -247,34 +280,25 @@ function EventExplorer({ user, onLogout }) {
         <div className="header-actions">
           <nav className="view-switcher" aria-label="Event views">
             <button
-              className={activeView === 'discover' ? 'active' : ''}
+              className="active"
               type="button"
-              onClick={() => setActiveView('discover')}
+              onClick={() => navigate('/events')}
             >
               Discover
             </button>
             <button
-              className={activeView === 'my-events' ? 'active' : ''}
               type="button"
-              onClick={() => setActiveView('my-events')}
+              onClick={() => navigate('/my-events')}
             >
               My Events
               {registrations.length > 0 && <span className="nav-count">{registrations.length}</span>}
             </button>
           </nav>
           <span className="user-greeting">Hi, {user.name.split(' ')[0]}</span>
-          <button className="logout-button" type="button" onClick={onLogout}>Log out</button>
+          <button className="logout-button" type="button" onClick={handleLogout}>Log out</button>
         </div>
       </header>
 
-      {activeView === 'my-events' ? (
-        <MyEvents
-          registrations={registrations}
-          onCancel={handleCancel}
-          onSelect={setSelectedEvent}
-        />
-      ) : (
-      <>
       <section className="explorer-hero">
         <div>
           <p className="eyebrow">Discover what is next</p>
@@ -331,23 +355,111 @@ function EventExplorer({ user, onLogout }) {
         )}
         {!loading && events.length > 0 && (
           <div className="event-grid">
-            {events.map((event) => <EventCard key={event.id} event={event} onSelect={setSelectedEvent} />)}
+            {events.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                onSelect={(selectedEvent) => navigate(`/events/${selectedEvent.id}`, { state: { event: selectedEvent } })}
+              />
+            ))}
           </div>
         )}
       </section>
 
-      </>
-      )}
-
-      {selectedEvent && (
-        <EventDetails
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          isRegistered={isRegistered(selectedEvent.id)}
-          onRegister={() => handleRegister(selectedEvent)}
-        />
-      )}
     </main>
+  )
+}
+
+function MyEventsPage({ user }) {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const registrations = useSelector((state) => selectRegistrationsForUser(state, user.email))
+
+  function handleCancel(eventId) {
+    dispatch(cancelRegistration({ userEmail: user.email, eventId }))
+  }
+
+  function handleLogout() {
+    dispatch(logout())
+    navigate('/login')
+  }
+
+  return (
+    <main className="explorer-shell">
+      <ExplorerHeader user={user} activeView="my-events" onLogout={handleLogout} />
+      <MyEvents
+        registrations={registrations}
+        onCancel={handleCancel}
+        onSelect={(event) => navigate(`/events/${event.id}`, { state: { event } })}
+      />
+    </main>
+  )
+}
+
+function EventDetailsPage({ user }) {
+  const { eventId } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const event = location.state?.event
+  const registrations = useSelector((state) => selectRegistrationsForUser(state, user.email))
+  const isRegistered = registrations.some((registration) => registration.id === eventId)
+
+  if (!event) {
+    return (
+      <main className="explorer-shell">
+        <ExplorerHeader user={user} activeView="" onLogout={() => {
+          dispatch(logout())
+          navigate('/login')
+        }} />
+        <div className="status-message details-not-found">
+          This event is not available in the current session. Return to Discover to select an event.
+          <button className="button button-primary" type="button" onClick={() => navigate('/events')}>
+            Back to events
+          </button>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className="explorer-shell">
+      <ExplorerHeader user={user} activeView="" onLogout={() => {
+        dispatch(logout())
+        navigate('/login')
+      }} />
+      <EventDetails
+        event={event}
+        isRegistered={isRegistered}
+        onRegister={() => dispatch(registerEvent({ userEmail: user.email, event }))}
+        onClose={() => navigate(-1)}
+      />
+    </main>
+  )
+}
+
+function ExplorerHeader({ user, activeView, onLogout }) {
+  const navigate = useNavigate()
+
+  return (
+    <header className="explorer-header">
+      <button className="wordmark wordmark-button" type="button" onClick={() => navigate('/events')}>
+        <span className="brand-mark" aria-hidden="true">EM</span>
+        <span>Event Management</span>
+      </button>
+      <div className="header-actions">
+        <nav className="view-switcher" aria-label="Event views">
+          <button className={activeView === 'discover' ? 'active' : ''} type="button" onClick={() => navigate('/events')}>
+            Discover
+          </button>
+          <button className={activeView === 'my-events' ? 'active' : ''} type="button" onClick={() => navigate('/my-events')}>
+            My Events
+          </button>
+        </nav>
+        <span className="user-greeting">Hi, {user.name.split(' ')[0]}</span>
+        <button className="logout-button" type="button" onClick={onLogout}>Log out</button>
+      </div>
+    </header>
   )
 }
 
